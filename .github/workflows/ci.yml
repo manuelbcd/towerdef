@@ -1,4 +1,4 @@
-name: CI
+name: Multi-Platform Build & Test
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
     branches:
       - main
       - develop
+  workflow_dispatch: # Allow manual triggering from GitHub Actions tab
 
 jobs:
   test-and-build:
