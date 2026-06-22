@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-enum TowerType { archer, magic, cannon }
+import 'game_config.dart';
 
 class Tower {
   final String id;
@@ -10,6 +9,7 @@ class Tower {
   double fireRate; // shots per second
   double damage;
   double range;
+  double blastRadius;
   int upgrades;
 
   double timeSinceLastShot = 0;
@@ -21,6 +21,7 @@ class Tower {
     required this.fireRate,
     required this.damage,
     required this.range,
+    required this.blastRadius,
     this.upgrades = 0,
   });
 
@@ -29,35 +30,16 @@ class Tower {
     required TowerType type,
     required Offset position,
   }) {
-    switch (type) {
-      case TowerType.archer:
-        return Tower(
-          id: id,
-          type: type,
-          position: position,
-          fireRate: 1.4,
-          damage: 9.0,
-          range: 120.0,
-        );
-      case TowerType.magic:
-        return Tower(
-          id: id,
-          type: type,
-          position: position,
-          fireRate: 1.0,
-          damage: 12.0,
-          range: 100.0,
-        );
-      case TowerType.cannon:
-        return Tower(
-          id: id,
-          type: type,
-          position: position,
-          fireRate: 0.7,
-          damage: 18.0,
-          range: 90.0,
-        );
-    }
+    final config = towerConfigs[type]!;
+    return Tower(
+      id: id,
+      type: type,
+      position: position,
+      fireRate: config.shotsPerSecond,
+      damage: config.damage,
+      range: config.range,
+      blastRadius: config.blastRadius,
+    );
   }
 
   /// Localization key for the tower display name
@@ -85,14 +67,7 @@ class Tower {
   }
 
   Color get color {
-    switch (type) {
-      case TowerType.archer:
-        return Colors.green;
-      case TowerType.magic:
-        return Colors.purple;
-      case TowerType.cannon:
-        return Colors.red;
-    }
+    return towerConfigs[type]!.color;
   }
 
   double get radius => 12.0;
@@ -113,6 +88,9 @@ class Tower {
       fireRate += 0.3;
       damage += 5.0;
       range += 15.0;
+      if (blastRadius > 0) {
+        blastRadius += 6.0;
+      }
     }
   }
 

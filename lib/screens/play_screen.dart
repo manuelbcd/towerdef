@@ -36,7 +36,11 @@ class PlayScreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.indigo.shade900, Colors.deepPurple.shade800, Colors.black87],
+          colors: [
+            Colors.indigo.shade900,
+            Colors.deepPurple.shade800,
+            Colors.black87
+          ],
         ),
       ),
       child: SafeArea(
@@ -52,11 +56,15 @@ class PlayScreen extends StatelessWidget {
                     onPressed: onBack,
                   ),
                   const SizedBox(width: 10),
-                  Text(context.t('play'), style: context.theme.textTheme.headline5?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(context.t('play'),
+                      style: context.theme.textTheme.headlineSmall?.copyWith(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 18),
-              Text(context.t('level_summary'), style: context.theme.textTheme.subtitle1?.copyWith(color: Colors.white70)),
+              Text(context.t('level_summary'),
+                  style: context.theme.textTheme.titleMedium
+                      ?.copyWith(color: Colors.white70)),
               const SizedBox(height: 22),
               Row(
                 children: [
@@ -70,8 +78,9 @@ class PlayScreen extends StatelessWidget {
                           selected: selected,
                           onSelected: (_) => onDifficultyChanged(difficulty),
                           selectedColor: Colors.amber.shade600,
-                          backgroundColor: Colors.white.withOpacity(0.08),
-                          labelStyle: TextStyle(color: selected ? Colors.black87 : Colors.white),
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          labelStyle: TextStyle(
+                              color: selected ? Colors.black87 : Colors.white),
                         ),
                       ),
                     );
@@ -79,17 +88,28 @@ class PlayScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: onPlay,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade600),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade600),
                     child: const Text('START'),
                   ),
                 ],
               ),
               const SizedBox(height: 22),
-              _StageCard(title: context.t('past_stage'), subtitle: 'Wave 3 - Completed', color: Colors.blueGrey.shade700),
+              _StageCard(
+                  title: context.t('past_stage'),
+                  subtitle: 'Wave 3 - Completed',
+                  color: Colors.blueGrey.shade700),
               const SizedBox(height: 14),
-              _StageCard(title: context.t('current_stage'), subtitle: 'Wave 4 - Idle defense', color: Colors.deepPurple.shade700, highlight: true),
+              _StageCard(
+                  title: context.t('current_stage'),
+                  subtitle: 'Wave 4 - Idle defense',
+                  color: Colors.deepPurple.shade700,
+                  highlight: true),
               const SizedBox(height: 14),
-              _StageCard(title: context.t('next_stage'), subtitle: 'Wave 5 - Harder enemy mix', color: Colors.indigo.shade700),
+              _StageCard(
+                  title: context.t('next_stage'),
+                  subtitle: 'Wave 5 - Harder enemy mix',
+                  color: Colors.indigo.shade700),
               const SizedBox(height: 24),
               _SettingsPanel(
                 locale: locale,
@@ -126,9 +146,10 @@ class _StageCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.22),
+        color: color.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: highlight ? Colors.amberAccent : Colors.white12),
+        border:
+            Border.all(color: highlight ? Colors.amberAccent : Colors.white12),
       ),
       child: Row(
         children: [
@@ -136,9 +157,13 @@ class _StageCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: context.theme.textTheme.subtitle1?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+                Text(title,
+                    style: context.theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
-                Text(subtitle, style: context.theme.textTheme.bodyText2?.copyWith(color: Colors.white70)),
+                Text(subtitle,
+                    style: context.theme.textTheme.bodyMedium
+                        ?.copyWith(color: Colors.white70)),
               ],
             ),
           ),
@@ -149,7 +174,9 @@ class _StageCard extends StatelessWidget {
                 color: Colors.amber.shade600,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(context.t('active'), style: context.theme.textTheme.caption?.copyWith(color: Colors.black87, fontWeight: FontWeight.bold)),
+              child: Text(context.t('active'),
+                  style: context.theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.black87, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
@@ -180,23 +207,27 @@ class _SettingsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(context.t('settings'), style: context.theme.textTheme.subtitle1?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
+          Text(context.t('settings'),
+              style: context.theme.textTheme.titleMedium
+                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700)),
           const SizedBox(height: 18),
           Row(
             children: [
-              Text(context.t('language'), style: context.theme.textTheme.bodyText1?.copyWith(color: Colors.white70)),
+              Text(context.t('language'),
+                  style: context.theme.textTheme.bodyLarge
+                      ?.copyWith(color: Colors.white70)),
               const SizedBox(width: 12),
               Expanded(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Padding(
@@ -206,13 +237,16 @@ class _SettingsPanel extends StatelessWidget {
                         value: locale,
                         dropdownColor: Colors.indigo.shade900,
                         items: const [
-                          DropdownMenuItem(value: Locale('en'), child: Text('English')),
-                          DropdownMenuItem(value: Locale('es'), child: Text('Español')),
+                          DropdownMenuItem(
+                              value: Locale('en'), child: Text('English')),
+                          DropdownMenuItem(
+                              value: Locale('es'), child: Text('Español')),
                         ],
                         onChanged: (value) {
                           if (value != null) onLocaleChanged(value);
                         },
-                        style: context.theme.textTheme.bodyText1?.copyWith(color: Colors.white),
+                        style: context.theme.textTheme.bodyLarge
+                            ?.copyWith(color: Colors.white),
                       ),
                     ),
                   ),

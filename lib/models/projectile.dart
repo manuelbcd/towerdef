@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 
 class Projectile {
   final String id;
+  final String targetEnemyId;
   final Offset source;
   Offset position;
-  final Offset targetPosition;
+  Offset targetPosition;
   final double speed;
   final double damage;
+  final double blastRadius;
   bool hasHit = false;
+  bool reachedTargetPosition = false;
 
   Projectile({
     required this.id,
+    required this.targetEnemyId,
     required this.source,
     required this.position,
     required this.targetPosition,
     required this.speed,
     required this.damage,
+    this.blastRadius = 0,
   });
 
   double get radius => 4.0;
@@ -23,11 +28,13 @@ class Projectile {
   Color get color => Colors.amber;
 
   void update(double deltaTime) {
+    reachedTargetPosition = false;
     final direction = (targetPosition - position);
     final distance = direction.distance;
 
-    if (distance < speed * deltaTime) {
-      hasHit = true;
+    if (distance <= speed * deltaTime || distance == 0) {
+      position = targetPosition;
+      reachedTargetPosition = true;
       return;
     }
 

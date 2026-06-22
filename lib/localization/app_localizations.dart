@@ -33,7 +33,8 @@ class AppLocalizations {
       'tower_arrow': 'Arrow Tower',
       'tower_arrow_desc': 'Fast firing with long range.',
       'tower_archer': 'Archer Tower',
-      'tower_archer_desc': 'Fast shooting, longer range, ideal for thinning waves quickly.',
+      'tower_archer_desc':
+          'Fast shooting, longer range, ideal for thinning waves quickly.',
       'tower_magic': 'Magic Tower',
       'tower_magic_desc': 'Deals area slow damage.',
       'tower_cannon': 'Cannon Tower',
@@ -73,7 +74,8 @@ class AppLocalizations {
       'tower_arrow': 'Torre Flecha',
       'tower_arrow_desc': 'Disparo rápido con largo alcance.',
       'tower_archer': 'Torre Arquera',
-      'tower_archer_desc': 'Disparo rápido y mayor alcance, ideal para reducir oleadas.',
+      'tower_archer_desc':
+          'Disparo rápido y mayor alcance, ideal para reducir oleadas.',
       'tower_magic': 'Torre Mágica',
       'tower_magic_desc': 'Daño en área con ralentización.',
       'tower_cannon': 'Torre Cañón',
@@ -94,7 +96,8 @@ class AppLocalizations {
   };
 
   String translate(String key) {
-    final localeMap = _localizedValues[locale.languageCode] ?? _localizedValues['en']!;
+    final localeMap =
+        _localizedValues[locale.languageCode] ?? _localizedValues['en']!;
     return localeMap[key] ?? _localizedValues['en']![key] ?? key;
   }
 }
@@ -113,7 +116,8 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   }
 
   @override
-  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) => false;
+  bool shouldReload(covariant LocalizationsDelegate<AppLocalizations> old) =>
+      false;
 }
 
 extension ThemeX on BuildContext {

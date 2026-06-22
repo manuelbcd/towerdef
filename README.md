@@ -6,7 +6,9 @@ A lightweight Flutter tower defense idle game prototype with English and Spanish
 
 - **3 Tower Types**: Archer, Magic, and Cannon towers with unique visual identities
 - **Upgrade System**: Enhance towers up to 3 levels (damage, range, fire rate)
-- **Dynamic Waves**: Progressive enemy difficulty and spawn rates
+- **Map-Based Waves**: Each map defines explicit wave compositions, enemy stats, and spawn rates
+- **Placement Stage**: Place towers into predefined map slots before starting combat
+- **Path Maps**: Five maps with curved enemy paths, start lines, end lines, and tower placeholders
 - **Real-time Combat**: Canvas-based 2D rendering with physics
 - **Currency System**: Earn coins by defeating enemies, spend on upgrades
 - **Multi-language**: Full English and Spanish localization
@@ -15,12 +17,14 @@ A lightweight Flutter tower defense idle game prototype with English and Spanish
 
 ## 🎮 Gameplay
 
-**Goal**: Survive enemy waves by upgrading towers strategically.
+**Goal**: Place towers, start combat, and survive the configured enemy waves.
 
-- Select towers to manage upgrades
+- During placement, choose Archer, Magic, or Cannon and tap a highlighted tower slot
+- Press Start Play to begin the wave sequence
+- Select placed towers to manage upgrades
 - Each enemy killed grants 25 coins
-- Each escaped enemy costs 1 health (start with 20)
-- Waves increase in difficulty and frequency
+- Each enemy reaching the end-line costs 1 life point (start with 20)
+- Each map defines its waves, enemy types, health, speed, and movement patterns
 - Game ends when health reaches 0
 
 For detailed mechanics, see [GAMEPLAY.md](GAMEPLAY.md).
@@ -39,6 +43,8 @@ lib/
 │   └── game_screen.dart     # Active gameplay
 ├── models/
 │   ├── game_data.dart       # Game constants
+│   ├── game_config.dart     # Tower/enemy/stage configuration
+│   ├── game_map.dart        # Map paths, tower slots, and wave definitions
 │   ├── tower.dart           # Tower class
 │   ├── enemy.dart           # Enemy class
 │   └── projectile.dart      # Projectile class
@@ -184,8 +190,13 @@ Use the virtual emulator for development, then only deploy to a real device when
 ### Game Engine (`game_engine.dart`)
 - Delta-time based update loop
 - Collision detection for projectiles & enemies
-- Wave progression logic
+- Placement/play stage management
+- Map-driven wave progression logic
 - Coin & health management
+
+### Configuration
+- `lib/models/game_config.dart` defines tower stats, enemy defaults, movement patterns, and game stages.
+- `lib/models/game_map.dart` defines map paths, start/end lines, tower placeholders, and explicit wave-by-wave enemy groups.
 
 ### Rendering (`game_screen.dart`)
 - `CustomPaint` for 2D canvas
@@ -215,18 +226,20 @@ Strings are defined in `lib/localization/app_localizations.dart`.
 
 ### Adding a New Tower Type
 
-1. Add to `TowerType` enum in `tower.dart`
-2. Update `Tower.color` getter
-3. Adjust starting stats (fireRate, damage, range)
+1. Add to `TowerType` enum in `game_config.dart`
+2. Add stats to `towerConfigs`
+3. Update tower rendering in `GamePainter._drawTower`
 4. Update localization strings
 
 ### Adjusting Game Difficulty
 
-Edit `game_engine.dart`:
-- `enemiesInWave`: Base enemies per wave
-- `spawnInterval`: Time between spawns
-- `Enemy.health`: Starting enemy HP
-- Wave scaling formulas
+Edit `lib/models/game_map.dart`:
+- `WaveConfig.spawnInterval`: time between enemy spawns
+- `WaveEnemyGroup.type`: enemy type
+- `WaveEnemyGroup.count`: number of enemies in that group
+- `WaveEnemyGroup.health`: health for that group in that wave
+- `WaveEnemyGroup.speed`: speed for that group in that wave
+- `WaveEnemyGroup.movementPattern`: straight or step-stop-step movement
 
 ### Changing Visuals
 
@@ -246,12 +259,12 @@ Edit `game_screen.dart` `GamePainter`:
 
 - No audio playback (UI sliders present for future integration)
 - No particle effects (kept minimal for performance)
-- Fixed tower positions (can be extended for placement)
+- Placement exists, but tower economy/shop integration is still basic
 - No save/load system (resets on app restart)
 
 ## 🚀 Future Enhancements
 
-- Tower placement system (drag & drop)
+- Richer tower placement rules and tower purchase costs
 - Particle effects & animations
 - Sound effects & background music
 - Save/load progression
@@ -273,4 +286,3 @@ Feel free to fork and extend with:
 - Custom maps
 
 Enjoy! 🎮
-

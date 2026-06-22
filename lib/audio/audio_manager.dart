@@ -32,7 +32,8 @@ class AudioManager {
     if (_musicPlayer == null) return;
     await _musicPlayer!.stop();
     await _musicPlayer!.setSource(AssetSource(assetPath));
-    await _musicPlayer!.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.stop);
+    await _musicPlayer!
+        .setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.stop);
     await _musicPlayer!.setVolume(_musicVolume);
     await _musicPlayer!.resume();
   }

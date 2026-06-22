@@ -4,12 +4,13 @@
 
 ### How to Play
 
-1. **Start Game**: Press the START button from the Play screen to launch the game.
-2. **Select Tower**: Tap any of the 3 towers on the board (Archer, Magic, or Cannon).
-3. **Upgrade Tower**: With a tower selected, tap the Upgrade button to pay coins and improve it.
-4. **Eliminate Enemies**: Your towers automatically shoot enemies that enter their range.
-5. **Earn Coins**: Each enemy killed drops 25 coins.
-6. **Survive Waves**: Keep your health above 0 by preventing enemies from escaping the screen.
+1. **Placement Stage**: Choose Archer, Magic, or Cannon in the placement panel.
+2. **Place Towers**: Tap highlighted placeholders on the map. Each map currently has 5 tower slots.
+3. **Start Play**: Press Start Play to begin the configured wave sequence.
+4. **Upgrade Tower**: During play, tap a placed tower and use the Upgrade button to spend coins and improve it.
+5. **Eliminate Enemies**: Your towers automatically shoot enemies that enter their range.
+6. **Earn Coins**: Each enemy killed drops 25 coins.
+7. **Survive Waves**: Keep your life points above 0 by preventing enemies from reaching the end-line.
 
 ---
 
@@ -17,20 +18,22 @@
 
 ### Archer Tower (Green)
 - **Starting Damage**: 10
-- **Starting Range**: 100
-- **Starting Fire Rate**: 1.0 shots/sec
+- **Starting Range**: 155
+- **Starting Fire Rate**: 1.4 shots/sec
 - **Description**: Fast-firing with long range.
 
 ### Magic Tower (Purple)
-- **Starting Damage**: 10
-- **Starting Range**: 100
+- **Starting Damage**: 12
+- **Starting Range**: 135
 - **Starting Fire Rate**: 1.0 shots/sec
-- **Description**: Deals area slow damage.
+- **Blast Radius**: 28
+- **Description**: Balanced magical splash damage.
 
 ### Cannon Tower (Red)
-- **Starting Damage**: 10
-- **Starting Range**: 100
-- **Starting Fire Rate**: 1.0 shots/sec
+- **Starting Damage**: 18
+- **Starting Range**: 125
+- **Starting Fire Rate**: 0.7 shots/sec
+- **Blast Radius**: 42
 - **Description**: High burst damage per shot.
 
 ---
@@ -54,19 +57,18 @@ Each tower can be upgraded up to **3 times** during gameplay.
 ## Game Progression
 
 ### Waves
-- Each wave spawns increasingly difficult enemies.
-- **Wave 1**: 5 enemies (20 HP each)
-- **Wave 2**: 9 enemies (23 HP each)
-- **Wave 3**: 13 enemies (26 HP each)
-- Enemy health increases by 3 per wave.
+- Waves are configured in `lib/models/game_map.dart`.
+- Each `WaveConfig` defines its spawn interval and one or more enemy groups.
+- Each enemy group defines enemy type, count, health, speed, and movement pattern.
+- Maps can share `standardMapWaves` or provide their own custom wave list.
 
 ### Enemy Spawning
-- Enemies spawn from the edges of the screen.
-- Spawn rate increases as waves progress.
-- Moving toward the center of the screen.
+- Enemies spawn from the map start-line.
+- Enemies follow the configured curved map path.
+- Enemy movement can be straight or step-stop-step.
 
 ### Losing
-- If an enemy escapes off-screen, you lose 1 health.
+- If an enemy reaches the map end-line, you lose 1 life point.
 - Game over when health reaches 0.
 
 ---
@@ -74,7 +76,7 @@ Each tower can be upgraded up to **3 times** during gameplay.
 ## Strategy Tips
 
 1. **Early Upgrades**: Save coins to upgrade a single tower quickly for maximum coverage.
-2. **Tower Positioning**: Your 3 towers are already placed; focus on optimizing upgrades.
+2. **Tower Positioning**: Use placement-stage range previews to cover as much of the path as possible.
 3. **Priority**: Upgrade the tower with the best range coverage first.
 4. **Chain Reactions**: Overlapping tower ranges create a more effective defense.
 
@@ -104,11 +106,11 @@ Shows final wave reached and total kills. Press "Play Again" to restart.
 ### Rendering
 - 2D canvas-based rendering for lightweight performance.
 - Grid background for spatial reference.
-- Tower ranges shown with transparent circles.
+- Tower ranges shown with transparent circles, including placement-stage range previews.
 - Health bars for enemies.
 
 ### Physics
-- Enemies move in straight lines from spawn to off-screen.
+- Enemies follow sampled map paths from start-line to end-line.
 - Projectiles travel at 200 pixels/second.
 - Simple distance-based collision detection.
 

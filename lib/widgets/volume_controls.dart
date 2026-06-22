@@ -20,7 +20,8 @@ class VolumeControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(context.t('music_volume'), style: context.theme.textTheme.subtitle1),
+        Text(context.t('music_volume'),
+            style: context.theme.textTheme.titleMedium),
         Slider(
           value: musicVolume,
           min: 0,
@@ -30,7 +31,8 @@ class VolumeControls extends StatelessWidget {
           onChanged: onMusicChanged,
         ),
         const SizedBox(height: 12),
-        Text(context.t('sound_volume'), style: context.theme.textTheme.subtitle1),
+        Text(context.t('sound_volume'),
+            style: context.theme.textTheme.titleMedium),
         Slider(
           value: soundVolume,
           min: 0,

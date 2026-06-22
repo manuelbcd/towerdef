@@ -4,13 +4,15 @@ This document summarizes the boilerplate and the playable prototype created in t
 
 **Project summary**
 - A lightweight Flutter 2D tower defense idle prototype.
-- Single-screen playable demo with 3 towers (Archer, Magic, Cannon), enemies, projectiles, coins, and upgrades (up to 3 levels per tower).
+- Single-screen playable demo with 3 tower types (Archer, Magic, Cannon), placement/play stages, map paths, configured waves, enemies, projectiles, coins, and upgrades (up to 3 levels per tower).
 - Localization support (English/Spanish) and UI volume controls present in the app shell.
 
 **Files & purpose**
 - [lib/main.dart](lib/main.dart) — minimal app entry: launches `GameScreen`.
 - [lib/screens/game_screen.dart](lib/screens/game_screen.dart) — main gameplay UI, rendering, HUD, tower selection and upgrade panel.
 - [lib/game/game_engine.dart](lib/game/game_engine.dart) — game logic: waves, spawning, coins, health, tower shooting.
+- [lib/models/game_config.dart](lib/models/game_config.dart) — tower stats, enemy defaults, movement patterns, and game stages.
+- [lib/models/game_map.dart](lib/models/game_map.dart) — maps, paths, tower placeholders, start/end lines, and explicit wave definitions.
 - [lib/models/tower.dart](lib/models/tower.dart) — `Tower` class, factory `Tower.create(...)`, stats, upgrade logic.
 - [lib/models/enemy.dart](lib/models/enemy.dart) — `Enemy` model, movement and damage handling.
 - [lib/models/projectile.dart](lib/models/projectile.dart) — `Projectile` model and movement logic.
@@ -23,14 +25,18 @@ This document summarizes the boilerplate and the playable prototype created in t
 - [lib/README.md](README.md) and [GAMEPLAY.md](GAMEPLAY.md) — high level README and gameplay guide.
 
 **Gameplay overview**
-- Three towers placed automatically on the map:
+- The game starts in placement stage:
+  - select Archer, Magic, or Cannon.
+  - tap one of the five map placeholders to place or replace a tower.
+  - press Start Play to begin combat.
+- Tower types:
   - Archer: fast fire rate, moderate damage, longest range.
-  - Magic: balanced stats.
-  - Cannon: high damage, slow fire rate, shorter range.
+  - Magic: balanced stats with splash damage.
+  - Cannon: high damage, slow fire rate, splash damage.
 - Each enemy killed awards `25` coins.
 - Each tower can be upgraded up to 3 times during the session. Upgrade effects (per level): +5 damage, +15 range, +0.3 fire rate. Upgrade cost: 150 + (level * 50).
-- Waves increase enemy health and spawn rate.
-- If an enemy leaves the screen, you lose 1 health; game over at 0.
+- Waves are configured per map in `game_map.dart`.
+- If an enemy reaches the end-line, you lose 1 life point; game over at 0.
 
 **How to run locally (minimal)**
 Prerequisites: Flutter SDK installed and available on PATH. For Android emulator testing you'll also need Android SDK command-line tools.
@@ -69,22 +75,24 @@ Notes:
 
 **How to test gameplay features**
 - Start the app (see run commands above).
-- The game area displays three towers. Tap a tower to select it.
-- With a tower selected, use the Upgrade button in the panel to spend coins (if you have enough). Up to 3 upgrades per tower.
-- Watch waves spawn from edges. Towers shoot automatically when enemies are in range.
+- The game starts in placement stage. Pick a tower type, tap highlighted slots to place towers, then press Start Play.
+- With a placed tower selected during play, use the Upgrade button in the panel to spend coins (if you have enough). Up to 3 upgrades per tower.
+- Watch waves follow the configured map path. Towers shoot automatically when enemies are in range.
 - When an enemy dies you gain coins. If it escapes off-screen you lose 1 health.
 
 **UI controls and behavior**
-- Tap a tower: selects/deselects it and shows the stat panel with name, description, stats, upgrade button.
+- Placement stage: tower selector chips choose the tower type, highlighted map placeholders accept tower placement, and range previews show coverage.
+- Play stage: tap a tower to select it and show the stat panel with name, description, stats, upgrade button.
 - Upgrade button: spends coins and increases tower stats (visual: small ring and stat chips update).
-- HUD: shows coins, health, wave, kills, and a Restart button (resets the game state).
+- HUD: shows coins, life, current/total wave, kills, map name, stage, and a Restart button.
 - Localization and volume controls exist in `PlayScreen` and are a UI-level placeholder (no audio integrated yet).
 
 **Developer notes & design choices**
 - Lightweight: uses only Flutter built-ins, no heavy game engine dependency.
 - Rendering: `CustomPaint` in `GameScreen` draws towers, enemies, projectiles, health bars and grid.
 - Game loop: `Ticker` in `GameScreen` advances the `GameEngine` using delta-time.
-- Collision: simple radius-based collision (projectiles vs enemies).
+- Collision: simple radius-based collision (projectiles vs enemies), with configured splash radius for Magic/Cannon.
+- Waves: `GameMap.waves` contains explicit `WaveConfig` entries, each with enemy groups defining type/count/health/speed/movement pattern.
 
 **Minimal install checklist (for your work Mac M2)**
 - Install Flutter SDK (recommended install channel: stable).
