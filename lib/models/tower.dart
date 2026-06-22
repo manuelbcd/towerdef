@@ -51,6 +51,8 @@ class Tower {
         return 'tower_magic';
       case TowerType.cannon:
         return 'tower_cannon';
+      case TowerType.slowerer:
+        return 'tower_slowerer';
     }
   }
 
@@ -63,6 +65,8 @@ class Tower {
         return 'tower_magic_desc';
       case TowerType.cannon:
         return 'tower_cannon_desc';
+      case TowerType.slowerer:
+        return 'tower_slowerer_desc';
     }
   }
 

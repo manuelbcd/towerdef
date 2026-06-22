@@ -4,6 +4,7 @@ import '../models/enemy.dart';
 import '../models/game_config.dart';
 import '../models/projectile.dart';
 import '../models/game_map.dart';
+import '../models/blast_effect.dart';
 
 class GameEngine {
   final Size screenSize;
@@ -16,6 +17,7 @@ class GameEngine {
   List<Tower> towers = [];
   List<Enemy> enemies = [];
   List<Projectile> projectiles = [];
+  List<BlastEffect> blastEffects = [];
 
   int coins = 500;
   int kills = 0;
@@ -26,6 +28,7 @@ class GameEngine {
   final List<WaveEnemyGroup> _spawnQueue = [];
 
   bool isGameOver = false;
+  bool isVictory = false;
   int playerLifePoints = 20;
 
   GameEngine({required this.screenSize, this.mapIndex = 0}) {
@@ -50,12 +53,20 @@ class GameEngine {
   }
 
   bool placeTowerAtSlot(int slotIndex, TowerType type) {
-    if (!isPlacementStage || slotIndex < 0 || slotIndex >= towerSlots.length) {
+    if (isGameOver ||
+        isVictory ||
+        slotIndex < 0 ||
+        slotIndex >= towerSlots.length) {
       return false;
     }
 
     final slotPosition = towerSlots[slotIndex];
-    towers.removeWhere((tower) => tower.position == slotPosition);
+    if (towerAtSlot(slotIndex) != null) return false;
+
+    final cost = towerConfigs[type]!.placementCost;
+    if (coins < cost) return false;
+
+    coins -= cost;
     towers.add(Tower.create(
       id: '${type.name}_slot_$slotIndex',
       type: type,
@@ -82,8 +93,34 @@ class GameEngine {
     return null;
   }
 
+  bool removeTower(Tower tower) {
+    if (!isPlacementStage) return false;
+    final removed = towers.remove(tower);
+    if (removed) {
+      coins += towerConfigs[tower.type]!.placementCost;
+    }
+    return removed;
+  }
+
+  Enemy? enemyAt(Offset position, {double tapPadding = 12}) {
+    if (!isPlayStage) return null;
+
+    for (final enemy in enemies.reversed) {
+      if (!enemy.isDead &&
+          (enemy.position - position).distance <= enemy.radius + tapPadding) {
+        return enemy;
+      }
+    }
+    return null;
+  }
+
   void update(double deltaTime) {
-    if (isGameOver) return;
+    for (final effect in blastEffects) {
+      effect.update(deltaTime);
+    }
+    blastEffects.removeWhere((effect) => effect.isFinished);
+
+    if (isGameOver || isVictory) return;
     if (!isPlayStage) return;
 
     // Spawn enemies
@@ -138,6 +175,12 @@ class GameEngine {
 
     // Update enemies
     for (final enemy in enemies) {
+      final magicDamage = enemy.consumeMagicDamage(deltaTime);
+      if (magicDamage > 0) {
+        _damageEnemy(enemy, magicDamage);
+      }
+      if (enemy.isDead) continue;
+
       enemy.update(deltaTime);
 
       if (enemy.reachedEndLine) {
@@ -153,7 +196,7 @@ class GameEngine {
     // Next wave
     if (enemiesSpawned >= enemiesInWave && enemies.isEmpty) {
       if (wave >= totalWaves) {
-        isGameOver = true;
+        isVictory = true;
         return;
       }
       wave++;
@@ -219,30 +262,62 @@ class GameEngine {
   }
 
   void _shootAt(Tower tower, Enemy target) {
+    final config = towerConfigs[tower.type]!;
     projectiles.add(Projectile(
       id: 'proj_${DateTime.now().millisecondsSinceEpoch}',
       targetEnemyId: target.id,
       source: tower.position,
       position: tower.position,
       targetPosition: target.position,
-      speed: 200,
+      speed: tower.type == TowerType.slowerer ? 520 : 200,
       damage: tower.damage,
       blastRadius: tower.blastRadius,
+      sourceTowerType: tower.type,
+      slowMultiplier: config.slowMultiplier,
+      slowDuration: config.slowDuration,
+      damagePerTick: config.damagePerTick,
+      damageTickCount: config.damageTickCount,
+      damageTickInterval: config.damageTickInterval,
     ));
   }
 
   void _applyProjectileDamage(Projectile projectile, Enemy directHit) {
     if (projectile.blastRadius <= 0) {
+      _applyProjectileStatus(projectile, directHit);
       _damageEnemy(directHit, projectile.damage);
       return;
+    }
+
+    if (projectile.sourceTowerType == TowerType.cannon) {
+      blastEffects.add(BlastEffect(
+        position: directHit.position,
+        radius: projectile.blastRadius,
+      ));
     }
 
     for (final enemy in enemies) {
       if (enemy.isDead) continue;
       final distance = (enemy.position - directHit.position).distance;
       if (distance <= projectile.blastRadius + enemy.radius) {
+        _applyProjectileStatus(projectile, enemy);
         _damageEnemy(enemy, projectile.damage);
       }
+    }
+  }
+
+  void _applyProjectileStatus(Projectile projectile, Enemy enemy) {
+    if (projectile.slowMultiplier < 1 && projectile.slowDuration > 0) {
+      enemy.applySlow(
+        multiplier: projectile.slowMultiplier,
+        duration: projectile.slowDuration,
+      );
+    }
+    if (projectile.damagePerTick > 0 && projectile.damageTickCount > 0) {
+      enemy.applyMagicDamage(
+        damagePerTick: projectile.damagePerTick,
+        tickCount: projectile.damageTickCount,
+        tickInterval: projectile.damageTickInterval,
+      );
     }
   }
 

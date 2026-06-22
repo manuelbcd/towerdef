@@ -23,22 +23,29 @@ const availableTowers = <TowerItem>[
     id: 'arrow',
     nameKey: 'tower_arrow',
     descriptionKey: 'tower_arrow_desc',
-    cost: 120,
+    cost: 100,
     icon: Icons.arrow_upward,
   ),
   TowerItem(
     id: 'magic',
     nameKey: 'tower_magic',
     descriptionKey: 'tower_magic_desc',
-    cost: 220,
+    cost: 200,
     icon: Icons.auto_fix_high,
   ),
   TowerItem(
     id: 'cannon',
     nameKey: 'tower_cannon',
     descriptionKey: 'tower_cannon_desc',
-    cost: 340,
+    cost: 250,
     icon: Icons.whatshot,
+  ),
+  TowerItem(
+    id: 'slowerer',
+    nameKey: 'tower_slowerer',
+    descriptionKey: 'tower_slowerer_desc',
+    cost: 150,
+    icon: Icons.ac_unit,
   ),
 ];
 

@@ -16,6 +16,38 @@ class MapLine {
   }
 }
 
+enum SceneryType { tree, rock, mountain, sand, lake }
+
+class SceneryItem {
+  final SceneryType type;
+  final Offset position;
+  final double scale;
+  final double rotation;
+
+  const SceneryItem({
+    required this.type,
+    required this.position,
+    this.scale = 1,
+    this.rotation = 0,
+  });
+
+  Offset scaledPosition(Size size) {
+    return Offset(position.dx * size.width, position.dy * size.height);
+  }
+}
+
+class LandscapePalette {
+  final Color topColor;
+  final Color bottomColor;
+  final Color accentColor;
+
+  const LandscapePalette({
+    required this.topColor,
+    required this.bottomColor,
+    required this.accentColor,
+  });
+}
+
 class GameMap {
   final String id;
   final String name;
@@ -24,6 +56,8 @@ class GameMap {
   final List<MapLine> endLines;
   final List<Offset> towerSlots;
   final List<WaveConfig> waves;
+  final LandscapePalette landscapePalette;
+  final List<SceneryItem> scenery;
 
   const GameMap({
     required this.id,
@@ -33,6 +67,8 @@ class GameMap {
     required this.endLines,
     required this.towerSlots,
     required this.waves,
+    required this.landscapePalette,
+    required this.scenery,
   });
 
   List<Offset> scaledPath(Size size) {
@@ -213,6 +249,28 @@ const gameMaps = <GameMap>[
       Offset(0.48, 0.25),
       Offset(0.67, 0.52),
       Offset(0.78, 0.42),
+      Offset(0.42, 0.64),
+      Offset(0.91, 0.42),
+    ],
+    landscapePalette: LandscapePalette(
+      topColor: Color(0xFF173F35),
+      bottomColor: Color(0xFF10283A),
+      accentColor: Color(0xFF77B86A),
+    ),
+    scenery: [
+      SceneryItem(
+          type: SceneryType.tree, position: Offset(0.08, 0.48), scale: 1.15),
+      SceneryItem(
+          type: SceneryType.tree, position: Offset(0.91, 0.24), scale: 0.9),
+      SceneryItem(
+          type: SceneryType.tree, position: Offset(0.55, 0.68), scale: 1.25),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.36, 0.72), scale: 0.9),
+      SceneryItem(
+          type: SceneryType.lake,
+          position: Offset(0.86, 0.84),
+          scale: 1.35,
+          rotation: -0.12),
     ],
     waves: standardMapWaves,
   ),
@@ -236,6 +294,33 @@ const gameMaps = <GameMap>[
       Offset(0.72, 0.42),
       Offset(0.26, 0.56),
       Offset(0.50, 0.74),
+      Offset(0.82, 0.18),
+      Offset(0.12, 0.88),
+    ],
+    landscapePalette: LandscapePalette(
+      topColor: Color(0xFF4A281E),
+      bottomColor: Color(0xFF251A2A),
+      accentColor: Color(0xFFE08A4E),
+    ),
+    scenery: [
+      SceneryItem(
+          type: SceneryType.sand,
+          position: Offset(0.78, 0.18),
+          scale: 1.7,
+          rotation: 0.25),
+      SceneryItem(
+          type: SceneryType.mountain,
+          position: Offset(0.82, 0.72),
+          scale: 1.25),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.08, 0.72), scale: 1.1),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.44, 0.10), scale: 0.75),
+      SceneryItem(
+          type: SceneryType.sand,
+          position: Offset(0.18, 0.88),
+          scale: 1.25,
+          rotation: -0.2),
     ],
     waves: standardMapWaves,
   ),
@@ -258,6 +343,31 @@ const gameMaps = <GameMap>[
       Offset(0.50, 0.66),
       Offset(0.22, 0.48),
       Offset(0.34, 0.28),
+      Offset(0.92, 0.68),
+      Offset(0.54, 0.22),
+    ],
+    landscapePalette: LandscapePalette(
+      topColor: Color(0xFF17394A),
+      bottomColor: Color(0xFF182D3A),
+      accentColor: Color(0xFF58A6B8),
+    ),
+    scenery: [
+      SceneryItem(
+          type: SceneryType.lake,
+          position: Offset(0.48, 0.18),
+          scale: 1.55,
+          rotation: 0.08),
+      SceneryItem(
+          type: SceneryType.lake,
+          position: Offset(0.72, 0.82),
+          scale: 1.25,
+          rotation: -0.22),
+      SceneryItem(
+          type: SceneryType.tree, position: Offset(0.10, 0.24), scale: 1.0),
+      SceneryItem(
+          type: SceneryType.tree, position: Offset(0.88, 0.58), scale: 1.2),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.12, 0.90), scale: 0.9),
     ],
     waves: standardMapWaves,
   ),
@@ -282,6 +392,27 @@ const gameMaps = <GameMap>[
       Offset(0.76, 0.34),
       Offset(0.58, 0.66),
       Offset(0.86, 0.66),
+      Offset(0.08, 0.28),
+      Offset(0.92, 0.88),
+    ],
+    landscapePalette: LandscapePalette(
+      topColor: Color(0xFF3B4148),
+      bottomColor: Color(0xFF1E2833),
+      accentColor: Color(0xFF8C989F),
+    ),
+    scenery: [
+      SceneryItem(
+          type: SceneryType.mountain,
+          position: Offset(0.10, 0.16),
+          scale: 1.35),
+      SceneryItem(
+          type: SceneryType.mountain, position: Offset(0.88, 0.16), scale: 1.0),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.10, 0.84), scale: 1.0),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.72, 0.62), scale: 0.8),
+      SceneryItem(
+          type: SceneryType.sand, position: Offset(0.38, 0.56), scale: 1.2),
     ],
     waves: standardMapWaves,
   ),
@@ -306,6 +437,32 @@ const gameMaps = <GameMap>[
       Offset(0.62, 0.60),
       Offset(0.60, 0.22),
       Offset(0.82, 0.30),
+      Offset(0.12, 0.88),
+      Offset(0.88, 0.58),
+    ],
+    landscapePalette: LandscapePalette(
+      topColor: Color(0xFF244B61),
+      bottomColor: Color(0xFF17263D),
+      accentColor: Color(0xFFB7E4EF),
+    ),
+    scenery: [
+      SceneryItem(
+          type: SceneryType.lake,
+          position: Offset(0.80, 0.78),
+          scale: 1.4,
+          rotation: 0.16),
+      SceneryItem(
+          type: SceneryType.mountain,
+          position: Offset(0.10, 0.20),
+          scale: 1.15),
+      SceneryItem(
+          type: SceneryType.mountain,
+          position: Offset(0.86, 0.08),
+          scale: 0.85),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.14, 0.58), scale: 0.85),
+      SceneryItem(
+          type: SceneryType.rock, position: Offset(0.72, 0.92), scale: 1.0),
     ],
     waves: standardMapWaves,
   ),
