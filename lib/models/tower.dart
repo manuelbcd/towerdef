@@ -30,7 +30,7 @@ class Tower {
     required TowerType type,
     required Offset position,
   }) {
-    final config = towerConfigs[type]!;
+    final config = towerCatalog[type]!;
     return Tower(
       id: id,
       type: type,
@@ -44,34 +44,16 @@ class Tower {
 
   /// Localization key for the tower display name
   String get nameKey {
-    switch (type) {
-      case TowerType.archer:
-        return 'tower_archer';
-      case TowerType.magic:
-        return 'tower_magic';
-      case TowerType.cannon:
-        return 'tower_cannon';
-      case TowerType.slowerer:
-        return 'tower_slowerer';
-    }
+    return towerCatalog[type]!.nameKey;
   }
 
   /// Localization key for the tower description / ability text
   String get descKey {
-    switch (type) {
-      case TowerType.archer:
-        return 'tower_archer_desc';
-      case TowerType.magic:
-        return 'tower_magic_desc';
-      case TowerType.cannon:
-        return 'tower_cannon_desc';
-      case TowerType.slowerer:
-        return 'tower_slowerer_desc';
-    }
+    return towerCatalog[type]!.descriptionKey;
   }
 
   Color get color {
-    return towerConfigs[type]!.color;
+    return towerCatalog[type]!.color;
   }
 
   double get radius => 12.0;

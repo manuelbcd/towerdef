@@ -12,9 +12,18 @@ import '../models/game_config.dart';
 import '../models/projectile.dart';
 import '../models/game_map.dart';
 import '../models/blast_effect.dart';
+import '../models/combat.dart';
+import '../models/campaign.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({Key? key}) : super(key: key);
+  final GameSessionConfig? session;
+  final ValueChanged<GameResult>? onFinished;
+
+  const GameScreen({
+    Key? key,
+    this.session,
+    this.onFinished,
+  }) : super(key: key);
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -33,7 +42,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final size = MediaQuery.of(context).size;
-      engine = GameEngine(screenSize: Size(size.width, size.height * 0.7));
+      engine = GameEngine(
+        screenSize: Size(size.width, size.height * 0.7),
+        session: widget.session,
+      );
       _startGameLoop();
       AudioManager().init();
       setState(() {});
@@ -126,7 +138,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         selectedPlacementTowerType,
       );
       if (!placed) {
-        final cost = towerConfigs[selectedPlacementTowerType]!.placementCost;
+        final cost = towerCatalog[selectedPlacementTowerType]!.placementCost;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Not enough gold — this tower costs $cost gold.'),
@@ -175,6 +187,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       engine = GameEngine(
         screenSize: currentEngine.screenSize,
         mapIndex: currentEngine.mapIndex,
+        session: widget.session,
       );
       selectedTower = null;
       selectedEnemy = null;
@@ -206,6 +219,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       selectedEnemy = null;
     });
     _startGameLoop();
+  }
+
+  void _finishCampaignStage() {
+    final currentEngine = engine;
+    final session = widget.session;
+    if (currentEngine == null || session == null || widget.onFinished == null) {
+      return;
+    }
+    widget.onFinished!(GameResult(
+      stageId: session.stage.id,
+      victory: currentEngine.isVictory,
+      kills: currentEngine.kills,
+      wave: currentEngine.wave,
+    ));
   }
 
   @override
@@ -327,9 +354,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold)),
                           const SizedBox(width: 8),
-                          ElevatedButton(
-                              onPressed: _nextMap, child: const Text('Map')),
-                          const SizedBox(width: 8),
+                          if (widget.session == null) ...[
+                            ElevatedButton(
+                                onPressed: _nextMap, child: const Text('Map')),
+                            const SizedBox(width: 8),
+                          ],
                           ElevatedButton(
                               onPressed: _resetGame,
                               style: ElevatedButton.styleFrom(
@@ -349,6 +378,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         towersPlaced: currentEngine.towers.length,
                         totalSlots: currentEngine.towerSlots.length,
                         availableGold: currentEngine.coins,
+                        availableTypes: currentEngine.availableTowerTypes,
                         isPlacementStage: currentEngine.isPlacementStage,
                         onTypeSelected: (type) {
                           setState(() {
@@ -403,8 +433,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       fontSize: 18, color: Colors.white70)),
                               const SizedBox(height: 20),
                               ElevatedButton(
-                                  onPressed: _nextMap,
-                                  child: Text(context.t('next_map'))),
+                                onPressed: widget.session == null
+                                    ? _nextMap
+                                    : _finishCampaignStage,
+                                child: Text(
+                                  widget.session == null
+                                      ? context.t('next_map')
+                                      : context.t('view_results'),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -427,8 +464,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       fontSize: 18, color: Colors.white70)),
                               const SizedBox(height: 20),
                               ElevatedButton(
-                                  onPressed: _resetGame,
-                                  child: const Text('Play Again')),
+                                onPressed: widget.session == null
+                                    ? _resetGame
+                                    : _finishCampaignStage,
+                                child: Text(
+                                  widget.session == null
+                                      ? 'Play Again'
+                                      : context.t('view_results'),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -803,7 +847,7 @@ class GamePainter extends CustomPainter {
     Canvas canvas, {
     required bool showRangePreviews,
   }) {
-    final selectedConfig = towerConfigs[selectedPlacementTowerType]!;
+    final selectedConfig = towerCatalog[selectedPlacementTowerType]!;
     for (var i = 0; i < engine.towerSlots.length; i++) {
       final slot = engine.towerSlots[i];
       final tower = engine.towerAtSlot(i);
@@ -866,11 +910,25 @@ class GamePainter extends CustomPainter {
   }
 
   void _drawMapPath(Canvas canvas) {
-    final path = Path()..moveTo(engine.path.first.dx, engine.path.first.dy);
-    for (final point in engine.path.skip(1)) {
-      path.lineTo(point.dx, point.dy);
+    for (final routePoints in engine.pathsByRouteId.values) {
+      final path = Path()..moveTo(routePoints.first.dx, routePoints.first.dy);
+      for (final point in routePoints.skip(1)) {
+        path.lineTo(point.dx, point.dy);
+      }
+
+      _drawRoutePath(canvas, path);
     }
 
+    for (final line in engine.map.scaledStartLines(engine.screenSize)) {
+      _drawLineMarker(
+          canvas, line.from, line.to, Colors.lightGreenAccent, 'START');
+    }
+    for (final line in engine.map.scaledEndLines(engine.screenSize)) {
+      _drawLineMarker(canvas, line.from, line.to, Colors.redAccent, 'END');
+    }
+  }
+
+  void _drawRoutePath(Canvas canvas, Path path) {
     canvas.drawPath(
       path,
       Paint()
@@ -898,14 +956,6 @@ class GamePainter extends CustomPainter {
         ..strokeJoin = StrokeJoin.round
         ..strokeWidth = 2,
     );
-
-    for (final line in engine.map.scaledStartLines(engine.screenSize)) {
-      _drawLineMarker(
-          canvas, line.from, line.to, Colors.lightGreenAccent, 'START');
-    }
-    for (final line in engine.map.scaledEndLines(engine.screenSize)) {
-      _drawLineMarker(canvas, line.from, line.to, Colors.redAccent, 'END');
-    }
   }
 
   void _drawLineMarker(
@@ -1213,7 +1263,7 @@ class GamePainter extends CustomPainter {
   }
 
   void _drawProjectile(Canvas canvas, Projectile projectile) {
-    if (projectile.sourceTowerType == TowerType.slowerer) {
+    if (projectile.attack.delivery == AttackDelivery.beam) {
       canvas.drawLine(
         projectile.source,
         projectile.position,
@@ -1305,6 +1355,7 @@ class _PlacementPanel extends StatelessWidget {
   final int towersPlaced;
   final int totalSlots;
   final int availableGold;
+  final List<TowerType> availableTypes;
   final bool isPlacementStage;
   final ValueChanged<TowerType> onTypeSelected;
   final VoidCallback? onStart;
@@ -1315,6 +1366,7 @@ class _PlacementPanel extends StatelessWidget {
     required this.towersPlaced,
     required this.totalSlots,
     required this.availableGold,
+    required this.availableTypes,
     required this.isPlacementStage,
     required this.onTypeSelected,
     required this.onStart,
@@ -1353,9 +1405,9 @@ class _PlacementPanel extends StatelessWidget {
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
-            children: TowerType.values.map((type) {
+            children: availableTypes.map((type) {
               final selected = type == selectedType;
-              final config = towerConfigs[type]!;
+              final config = towerCatalog[type]!;
               final affordable = availableGold >= config.placementCost;
               return ChoiceChip(
                 avatar: Icon(
@@ -1703,7 +1755,7 @@ class _TowerControlPanel extends StatelessWidget {
                 _StatChip(
                   label: 'Purple curse',
                   value:
-                      '${towerConfigs[tower.type]!.damagePerTick.toStringAsFixed(0)} × ${towerConfigs[tower.type]!.damageTickCount}s',
+                      '${towerCatalog[tower.type]!.periodicDamage!.damagePerTick.toStringAsFixed(0)} × ${towerCatalog[tower.type]!.periodicDamage!.tickCount}s',
                 ),
             ],
           ),

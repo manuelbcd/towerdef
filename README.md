@@ -4,11 +4,12 @@ A lightweight Flutter tower defense idle game prototype with English and Spanish
 
 ## ✨ Features
 
-- **3 Tower Types**: Archer, Magic, and Cannon towers with unique visual identities
+- **4 Tower Types**: Archer, Magic, Cannon, and Slowerer with unique combat effects
 - **Upgrade System**: Enhance towers up to 3 levels (damage, range, fire rate)
-- **Map-Based Waves**: Each map defines explicit wave compositions, enemy stats, and spawn rates
+- **Campaign**: Five connected stages across two chapters with persistent unlocks and rewards
+- **Reusable Encounters**: Wave compositions are independent from map geometry
 - **Placement Stage**: Place towers into predefined map slots before starting combat
-- **Path Maps**: Five maps with curved enemy paths, start lines, end lines, and tower placeholders
+- **Multi-Route Maps**: Five maps with named curved routes, scenery, and build slots
 - **Real-time Combat**: Canvas-based 2D rendering with physics
 - **Currency System**: Earn coins by defeating enemies, spend on upgrades
 - **Multi-language**: Full English and Spanish localization

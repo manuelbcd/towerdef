@@ -5,12 +5,18 @@ import '../models/game_config.dart';
 import '../models/projectile.dart';
 import '../models/game_map.dart';
 import '../models/blast_effect.dart';
+import '../models/combat.dart';
+import '../models/campaign.dart';
+import '../models/encounter.dart';
 
 class GameEngine {
   final Size screenSize;
   final int mapIndex;
+  final GameSessionConfig? session;
   late final GameMap map;
+  late final EncounterDefinition encounter;
   late final List<Offset> path;
+  late final Map<String, List<Offset>> pathsByRouteId;
   late final List<Offset> towerSlots;
   GameStage stage = GameStage.placement;
 
@@ -19,7 +25,7 @@ class GameEngine {
   List<Projectile> projectiles = [];
   List<BlastEffect> blastEffects = [];
 
-  int coins = 500;
+  late int coins;
   int kills = 0;
   int wave = 1;
   int enemiesSpawned = 0;
@@ -29,23 +35,34 @@ class GameEngine {
 
   bool isGameOver = false;
   bool isVictory = false;
-  int playerLifePoints = 20;
+  late int playerLifePoints;
 
-  GameEngine({required this.screenSize, this.mapIndex = 0}) {
-    map = gameMaps[mapIndex % gameMaps.length];
-    path = map.scaledPath(screenSize);
+  GameEngine({
+    required this.screenSize,
+    this.mapIndex = 0,
+    this.session,
+  }) {
+    map = session?.map ?? gameMaps[mapIndex % gameMaps.length];
+    encounter = session?.encounter ?? introEncounter;
+    coins = session?.rules.startingGold ?? 500;
+    playerLifePoints = session?.rules.startingLives ?? 20;
+    pathsByRouteId = map.scaledPaths(screenSize);
+    path = pathsByRouteId.values.first;
     towerSlots = map.scaledTowerSlots(screenSize);
   }
 
   int get health => playerLifePoints;
   int get nextMapIndex => (mapIndex + 1) % gameMaps.length;
-  int get totalWaves => map.waves.length;
-  WaveConfig get currentWaveConfig => map.waves[wave - 1];
+  int get totalWaves => encounter.waves.length;
+  WaveConfig get currentWaveConfig => encounter.waves[wave - 1];
   int get enemiesInWave => currentWaveConfig.totalEnemies;
   double get spawnInterval => currentWaveConfig.spawnInterval;
 
   bool get isPlacementStage => stage == GameStage.placement;
   bool get isPlayStage => stage == GameStage.play;
+
+  List<TowerType> get availableTowerTypes =>
+      session?.rules.availableTowerTypes ?? TowerType.values;
 
   void startPlay() {
     stage = GameStage.play;
@@ -59,11 +76,12 @@ class GameEngine {
         slotIndex >= towerSlots.length) {
       return false;
     }
+    if (!availableTowerTypes.contains(type)) return false;
 
     final slotPosition = towerSlots[slotIndex];
     if (towerAtSlot(slotIndex) != null) return false;
 
-    final cost = towerConfigs[type]!.placementCost;
+    final cost = towerCatalog[type]!.placementCost;
     if (coins < cost) return false;
 
     coins -= cost;
@@ -97,7 +115,7 @@ class GameEngine {
     if (!isPlacementStage) return false;
     final removed = towers.remove(tower);
     if (removed) {
-      coins += towerConfigs[tower.type]!.placementCost;
+      coins += towerCatalog[tower.type]!.placementCost;
     }
     return removed;
   }
@@ -175,9 +193,9 @@ class GameEngine {
 
     // Update enemies
     for (final enemy in enemies) {
-      final magicDamage = enemy.consumeMagicDamage(deltaTime);
-      if (magicDamage > 0) {
-        _damageEnemy(enemy, magicDamage);
+      final statusDamage = enemy.updateStatusEffects(deltaTime);
+      if (statusDamage > 0) {
+        _damageEnemy(enemy, statusDamage);
       }
       if (enemy.isDead) continue;
 
@@ -209,10 +227,15 @@ class GameEngine {
   void _spawnEnemy() {
     if (_spawnQueue.isEmpty) return;
     final group = _spawnQueue.removeAt(0);
+    final route = map.routeForSpawn(
+      enemiesSpawned,
+      routeId: group.routeId,
+    );
     enemies.add(Enemy.spawn(
       id: 'enemy_${DateTime.now().millisecondsSinceEpoch}',
       type: group.type,
-      path: path,
+      path: pathsByRouteId[route.id]!,
+      routeId: route.id,
       health: group.health,
       speed: group.speed,
       movementPattern: group.movementPattern,
@@ -262,62 +285,44 @@ class GameEngine {
   }
 
   void _shootAt(Tower tower, Enemy target) {
-    final config = towerConfigs[tower.type]!;
+    final definition = towerCatalog[tower.type]!;
     projectiles.add(Projectile(
       id: 'proj_${DateTime.now().millisecondsSinceEpoch}',
       targetEnemyId: target.id,
       source: tower.position,
       position: tower.position,
       targetPosition: target.position,
-      speed: tower.type == TowerType.slowerer ? 520 : 200,
-      damage: tower.damage,
-      blastRadius: tower.blastRadius,
-      sourceTowerType: tower.type,
-      slowMultiplier: config.slowMultiplier,
-      slowDuration: config.slowDuration,
-      damagePerTick: config.damagePerTick,
-      damageTickCount: config.damageTickCount,
-      damageTickInterval: config.damageTickInterval,
+      attack: definition.attack.resolve(
+        directDamage: tower.damage,
+        areaRadius: tower.blastRadius,
+      ),
     ));
   }
 
   void _applyProjectileDamage(Projectile projectile, Enemy directHit) {
-    if (projectile.blastRadius <= 0) {
-      _applyProjectileStatus(projectile, directHit);
-      _damageEnemy(directHit, projectile.damage);
-      return;
-    }
-
-    if (projectile.sourceTowerType == TowerType.cannon) {
+    if (projectile.attack.impactVisualId == 'cannon_explosion') {
       blastEffects.add(BlastEffect(
         position: directHit.position,
-        radius: projectile.blastRadius,
+        radius: projectile.attack.areaRadius,
       ));
     }
 
-    for (final enemy in enemies) {
-      if (enemy.isDead) continue;
-      final distance = (enemy.position - directHit.position).distance;
-      if (distance <= projectile.blastRadius + enemy.radius) {
-        _applyProjectileStatus(projectile, enemy);
-        _damageEnemy(enemy, projectile.damage);
-      }
-    }
-  }
+    final targets = projectile.attack.areaRadius <= 0
+        ? <Enemy>[directHit]
+        : enemies.where((enemy) {
+            if (enemy.isDead) return false;
+            final distance = (enemy.position - directHit.position).distance;
+            return distance <= projectile.attack.areaRadius + enemy.radius;
+          });
 
-  void _applyProjectileStatus(Projectile projectile, Enemy enemy) {
-    if (projectile.slowMultiplier < 1 && projectile.slowDuration > 0) {
-      enemy.applySlow(
-        multiplier: projectile.slowMultiplier,
-        duration: projectile.slowDuration,
-      );
-    }
-    if (projectile.damagePerTick > 0 && projectile.damageTickCount > 0) {
-      enemy.applyMagicDamage(
-        damagePerTick: projectile.damagePerTick,
-        tickCount: projectile.damageTickCount,
-        tickInterval: projectile.damageTickInterval,
-      );
+    for (final enemy in targets) {
+      for (final effect in projectile.attack.effects) {
+        if (effect is DirectDamageEffectDefinition) {
+          _damageEnemy(enemy, effect.damage);
+        } else if (effect is StatusEffectDefinition) {
+          enemy.applyStatus(effect);
+        }
+      }
     }
   }
 

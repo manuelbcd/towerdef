@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'combat.dart';
 import 'game_config.dart';
 
 class Enemy {
@@ -13,12 +14,8 @@ class Enemy {
   double speed;
   MovementPattern movementPattern;
   double movementClock = 0;
-  double slowMultiplier = 1;
-  double slowTimeRemaining = 0;
-  double magicDamagePerTick = 0;
-  int magicTicksRemaining = 0;
-  double magicTickInterval = 1;
-  double magicTickClock = 0;
+  final List<ActiveStatusEffect> statusEffects = [];
+  final String routeId;
   int pathIndex;
   bool isDead = false;
   bool reachedEndLine = false;
@@ -30,6 +27,7 @@ class Enemy {
     required this.position,
     required this.speed,
     required this.movementPattern,
+    this.routeId = 'main',
     this.pathIndex = 1,
     this.health = 20.0,
   }) : maxHealth = health;
@@ -41,8 +39,9 @@ class Enemy {
     double? health,
     double? speed,
     MovementPattern? movementPattern,
+    String routeId = 'main',
   }) {
-    final config = enemyConfigs[type]!;
+    final config = enemyCatalog[type]!;
     return Enemy(
       id: id,
       type: type,
@@ -50,6 +49,7 @@ class Enemy {
       position: path.first,
       speed: speed ?? config.speed,
       movementPattern: movementPattern ?? config.movementPattern,
+      routeId: routeId,
       health: health ?? config.health,
     );
   }
@@ -85,51 +85,42 @@ class Enemy {
     }
   }
 
-  bool get isSlowed => slowTimeRemaining > 0;
+  bool get isSlowed => statusEffects.any(
+        (effect) =>
+            effect.definition is StatModifierEffectDefinition &&
+            effect.speedMultiplier < 1,
+      );
 
-  double get effectiveSpeed => speed * (isSlowed ? slowMultiplier : 1);
-
-  void applySlow({required double multiplier, required double duration}) {
-    slowMultiplier = isSlowed
-        ? math.min(slowMultiplier, multiplier.clamp(0.05, 1.0))
-        : multiplier.clamp(0.05, 1.0);
-    slowTimeRemaining = math.max(slowTimeRemaining, duration);
+  double get effectiveSpeed {
+    final multiplier = statusEffects.fold<double>(
+      1,
+      (value, effect) => math.min(value, effect.speedMultiplier),
+    );
+    return speed * multiplier;
   }
 
-  bool get isUnderMagicEffect => magicTicksRemaining > 0;
-
-  void applyMagicDamage({
-    required double damagePerTick,
-    required int tickCount,
-    required double tickInterval,
-  }) {
-    if (damagePerTick <= 0 || tickCount <= 0 || tickInterval <= 0) return;
-
-    final wasActive = isUnderMagicEffect;
-    magicDamagePerTick =
-        wasActive ? math.max(magicDamagePerTick, damagePerTick) : damagePerTick;
-    magicTicksRemaining = math.max(magicTicksRemaining, tickCount);
-    magicTickInterval =
-        wasActive ? math.min(magicTickInterval, tickInterval) : tickInterval;
+  bool hasStatus(String id) {
+    return statusEffects.any((effect) => effect.definition.id == id);
   }
 
-  double consumeMagicDamage(double deltaTime) {
-    if (!isUnderMagicEffect) return 0;
+  bool get isUnderMagicEffect => hasStatus('purple_curse');
 
-    magicTickClock += deltaTime;
-    var ticks = 0;
-    while (magicTickClock >= magicTickInterval && magicTicksRemaining > 0) {
-      magicTickClock -= magicTickInterval;
-      magicTicksRemaining--;
-      ticks++;
+  void applyStatus(StatusEffectDefinition definition) {
+    for (final active in statusEffects) {
+      if (active.definition.id == definition.id) {
+        active.merge(definition);
+        return;
+      }
     }
+    statusEffects.add(ActiveStatusEffect(definition));
+  }
 
-    final damage = ticks * magicDamagePerTick;
-    if (!isUnderMagicEffect) {
-      magicTickClock = 0;
-      magicDamagePerTick = 0;
-      magicTickInterval = 1;
+  double updateStatusEffects(double deltaTime) {
+    var damage = 0.0;
+    for (final effect in statusEffects) {
+      damage += effect.update(deltaTime);
     }
+    statusEffects.removeWhere((effect) => effect.isFinished);
     return damage;
   }
 
@@ -160,9 +151,6 @@ class Enemy {
         distanceLeft = 0;
       }
     }
-
-    slowTimeRemaining = math.max(0, slowTimeRemaining - deltaTime);
-    if (!isSlowed) slowMultiplier = 1;
   }
 
   double _distanceForPattern(double deltaTime) {

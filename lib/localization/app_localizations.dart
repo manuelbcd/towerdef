@@ -83,6 +83,37 @@ class AppLocalizations {
       'victory': 'Victory!',
       'map_defended': 'Map defended',
       'next_map': 'Next map',
+      'view_results': 'View results',
+      'campaign_realm_defense': 'Realm Defense',
+      'campaign_realm_defense_desc':
+          'Defend the borderlands and push back the siege across five maps.',
+      'chapter_borderlands': 'Chapter I · The Borderlands',
+      'chapter_frozen_crown': 'Chapter II · The Frozen Crown',
+      'stage_green_pass': 'Two Roads at Green Pass',
+      'stage_green_pass_desc':
+          'Learn to defend two routes while building your first field force.',
+      'stage_ember_turns': 'Ember Turns',
+      'stage_ember_turns_desc':
+          'Hold the winding road before the raiders reach the southern gate.',
+      'stage_river_hook': 'River Hook Crossing',
+      'stage_river_hook_desc':
+          'A faster mixed assault follows the river toward the settlement.',
+      'stage_stone_s': 'Siege of Stone S',
+      'stage_stone_s_desc':
+          'Use the long bends to contain tougher enemies and heavy brutes.',
+      'stage_frost_loop': 'The Frozen Crown',
+      'stage_frost_loop_desc':
+          'Survive the strongest siege and secure the northern passage.',
+      'encounter_border_patrol': 'Border Patrol',
+      'encounter_mixed_assault': 'Mixed Assault',
+      'encounter_heavy_siege': 'Heavy Siege',
+      'starting_resources': 'Starting resources',
+      'stage_rewards': 'Stage rewards',
+      'start_stage': 'Start stage',
+      'stage_complete': 'Stage complete!',
+      'stage_failed': 'Defense broken',
+      'continue_campaign': 'Continue campaign',
+      'campaign_map': 'Campaign map',
     },
     'es': {
       'app_title': 'TowerDef',
@@ -156,6 +187,37 @@ class AppLocalizations {
       'victory': '¡Victoria!',
       'map_defended': 'Mapa defendido',
       'next_map': 'Siguiente mapa',
+      'view_results': 'Ver resultados',
+      'campaign_realm_defense': 'Defensa del Reino',
+      'campaign_realm_defense_desc':
+          'Defiende las fronteras y rechaza el asedio a través de cinco mapas.',
+      'chapter_borderlands': 'Capítulo I · Las Fronteras',
+      'chapter_frozen_crown': 'Capítulo II · La Corona Helada',
+      'stage_green_pass': 'Dos caminos en Paso Verde',
+      'stage_green_pass_desc':
+          'Aprende a defender dos rutas mientras construyes tu primera fuerza.',
+      'stage_ember_turns': 'Curvas de Brasa',
+      'stage_ember_turns_desc':
+          'Protege el camino sinuoso antes de que alcancen la puerta sur.',
+      'stage_river_hook': 'Cruce del Gancho del Río',
+      'stage_river_hook_desc':
+          'Un asalto mixto y veloz sigue el río hacia el asentamiento.',
+      'stage_stone_s': 'Asedio de la S de Piedra',
+      'stage_stone_s_desc':
+          'Usa las curvas largas para contener enemigos y brutos resistentes.',
+      'stage_frost_loop': 'La Corona Helada',
+      'stage_frost_loop_desc':
+          'Sobrevive al asedio más fuerte y asegura el paso del norte.',
+      'encounter_border_patrol': 'Patrulla Fronteriza',
+      'encounter_mixed_assault': 'Asalto Mixto',
+      'encounter_heavy_siege': 'Asedio Pesado',
+      'starting_resources': 'Recursos iniciales',
+      'stage_rewards': 'Recompensas de etapa',
+      'start_stage': 'Iniciar etapa',
+      'stage_complete': '¡Etapa completada!',
+      'stage_failed': 'Defensa rota',
+      'continue_campaign': 'Continuar campaña',
+      'campaign_map': 'Mapa de campaña',
     },
   };
 

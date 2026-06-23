@@ -6,6 +6,8 @@ import 'package:towerdef/models/game_config.dart';
 import 'package:towerdef/models/game_map.dart';
 import 'package:towerdef/models/projectile.dart';
 import 'package:towerdef/models/tower.dart';
+import 'package:towerdef/models/combat.dart';
+import 'package:towerdef/models/encounter.dart';
 
 void main() {
   test('GameEngine upgrade and coin logic', () {
@@ -81,10 +83,10 @@ void main() {
   test('Placement costs enforce the 500 gold starting build budget', () {
     final engine = GameEngine(screenSize: const Size(400, 800));
 
-    expect(towerConfigs[TowerType.archer]!.placementCost, 100);
-    expect(towerConfigs[TowerType.cannon]!.placementCost, 250);
-    expect(towerConfigs[TowerType.magic]!.placementCost, 200);
-    expect(towerConfigs[TowerType.slowerer]!.placementCost, 150);
+    expect(towerCatalog[TowerType.archer]!.placementCost, 100);
+    expect(towerCatalog[TowerType.cannon]!.placementCost, 250);
+    expect(towerCatalog[TowerType.magic]!.placementCost, 200);
+    expect(towerCatalog[TowerType.slowerer]!.placementCost, 150);
 
     expect(engine.placeTowerAtSlot(0, TowerType.cannon), true);
     expect(engine.placeTowerAtSlot(1, TowerType.slowerer), true);
@@ -105,12 +107,27 @@ void main() {
       type: TowerType.cannon,
       position: Offset.zero,
     );
-    final config = towerConfigs[TowerType.cannon]!;
+    final config = towerCatalog[TowerType.cannon]!;
 
     expect(tower.fireRate, config.shotsPerSecond);
     expect(tower.damage, config.damage);
     expect(tower.range, config.range);
     expect(tower.blastRadius, config.blastRadius);
+  });
+
+  test('Runtime tower upgrades do not mutate catalog definitions', () {
+    final definition = towerCatalog[TowerType.archer]!;
+    final baseDamage = definition.damage;
+    final tower = Tower.create(
+      id: 'runtime_archer',
+      type: TowerType.archer,
+      position: Offset.zero,
+    );
+
+    tower.upgrade();
+
+    expect(tower.damage, greaterThan(baseDamage));
+    expect(towerCatalog[TowerType.archer]!.damage, baseDamage);
   });
 
   test('Every tower receives the configured 25 percent range boost', () {
@@ -123,7 +140,7 @@ void main() {
 
     for (final entry in originalRanges.entries) {
       expect(
-        towerConfigs[entry.key]!.range,
+        towerCatalog[entry.key]!.range,
         entry.value * 1.25,
         reason: '${entry.key.name} should receive the range boost',
       );
@@ -137,7 +154,7 @@ void main() {
       type: EnemyType.runner,
       path: path,
     );
-    final config = enemyConfigs[EnemyType.runner]!;
+    final config = enemyCatalog[EnemyType.runner]!;
 
     expect(enemy.speed, config.speed);
     expect(enemy.movementPattern, MovementPattern.stepStopStep);
@@ -149,11 +166,11 @@ void main() {
     expect(enemy.position.dx, positionAfterStep);
   });
 
-  test('Each configured map has explicit wave definitions', () {
-    for (final map in gameMaps) {
-      expect(map.waves.length, 3,
-          reason: '${map.name} should be won after three waves');
-      for (final wave in map.waves) {
+  test('Each configured encounter has explicit wave definitions', () {
+    for (final encounter in encounterCatalog.values) {
+      expect(encounter.waves, isNotEmpty,
+          reason: '${encounter.id} needs waves');
+      for (final wave in encounter.waves) {
         expect(wave.totalEnemies, greaterThan(0));
         expect(wave.spawnInterval, greaterThan(0));
         for (final group in wave.enemyGroups) {
@@ -168,6 +185,13 @@ void main() {
   test('Each map has valid configurable landscape scenery', () {
     for (final map in gameMaps) {
       expect(map.towerSlots, hasLength(7));
+      expect(map.routes, isNotEmpty);
+      expect(map.routes.map((route) => route.id).toSet().length,
+          map.routes.length);
+      for (final route in map.routes) {
+        expect(route.pathWaypoints.length, greaterThanOrEqualTo(2));
+        expect(route.spawnWeight, greaterThan(0));
+      }
       expect(map.scenery, isNotEmpty, reason: '${map.name} needs scenery');
       for (final item in map.scenery) {
         expect(item.position.dx, inInclusiveRange(0, 1));
@@ -201,18 +225,34 @@ void main() {
 
   test('Engine spawns enemies from configured wave groups', () {
     final engine = GameEngine(screenSize: const Size(400, 800));
-    final firstGroup = engine.map.waves.first.enemyGroups.first;
+    final firstGroup = engine.encounter.waves.first.enemyGroups.first;
 
     engine.startPlay();
     engine.update(engine.spawnInterval);
 
     expect(engine.enemies.length, 1);
     expect(engine.enemiesSpawned, 1);
-    expect(engine.enemiesInWave, engine.map.waves.first.totalEnemies);
+    expect(engine.enemiesInWave, engine.encounter.waves.first.totalEnemies);
     expect(engine.enemies.first.type, firstGroup.type);
     expect(engine.enemies.first.health, firstGroup.health);
     expect(engine.enemies.first.speed, firstGroup.speed);
     expect(engine.enemies.first.movementPattern, firstGroup.movementPattern);
+  });
+
+  test('Multi-route maps distribute spawns across named routes', () {
+    final engine = GameEngine(
+      screenSize: const Size(400, 800),
+      mapIndex: 0,
+    );
+    expect(engine.map.routes, hasLength(2));
+    engine.startPlay();
+
+    engine.update(engine.spawnInterval);
+    engine.update(engine.spawnInterval);
+
+    expect(engine.enemies.map((enemy) => enemy.routeId).toSet(),
+        containsAll(<String>{'upper', 'lower'}));
+    expect(engine.map.routeForSpawn(0, routeId: 'lower').id, 'lower');
   });
 
   test('Enemy hit testing is available only during play', () {
@@ -242,8 +282,7 @@ void main() {
       source: Offset.zero,
       position: Offset.zero,
       targetPosition: const Offset(10, 0),
-      speed: 20,
-      damage: 5,
+      attack: _directAttack(speed: 20, damage: 5),
     );
 
     projectile.update(1);
@@ -272,8 +311,7 @@ void main() {
       source: const Offset(100, 100),
       position: const Offset(100, 100),
       targetPosition: enemy.position,
-      speed: 300,
-      damage: 10,
+      attack: _directAttack(speed: 300, damage: 10),
     ));
 
     engine.update(0.2);
@@ -282,7 +320,7 @@ void main() {
   });
 
   test('Every configured tower can damage every configured enemy type', () {
-    for (final towerEntry in towerConfigs.entries) {
+    for (final towerEntry in towerCatalog.entries) {
       for (final enemyType in EnemyType.values) {
         final engine = GameEngine(screenSize: const Size(400, 800));
         engine.startPlay();
@@ -305,9 +343,7 @@ void main() {
           source: const Offset(120, 100),
           position: enemy.position,
           targetPosition: enemy.position,
-          speed: 1,
-          damage: towerEntry.value.damage,
-          blastRadius: towerEntry.value.blastRadius,
+          attack: towerEntry.value.attack,
         ));
 
         engine.update(0.01);
@@ -324,7 +360,7 @@ void main() {
 
   test('Configured blast radius damages nearby enemies only', () {
     for (final towerEntry
-        in towerConfigs.entries.where((entry) => entry.value.blastRadius > 0)) {
+        in towerCatalog.entries.where((entry) => entry.value.blastRadius > 0)) {
       final engine = GameEngine(screenSize: const Size(400, 800));
       engine.startPlay();
       engine.towers.clear();
@@ -350,9 +386,7 @@ void main() {
         source: const Offset(120, 100),
         position: direct.position,
         targetPosition: direct.position,
-        speed: 1,
-        damage: towerEntry.value.damage,
-        blastRadius: towerEntry.value.blastRadius,
+        attack: towerEntry.value.attack,
       ));
 
       engine.update(0.01);
@@ -378,10 +412,7 @@ void main() {
       source: const Offset(120, 100),
       position: enemy.position,
       targetPosition: enemy.position,
-      speed: 1,
-      damage: towerConfigs[TowerType.cannon]!.damage,
-      blastRadius: towerConfigs[TowerType.cannon]!.blastRadius,
-      sourceTowerType: TowerType.cannon,
+      attack: towerCatalog[TowerType.cannon]!.attack,
     ));
 
     engine.update(0.01);
@@ -390,7 +421,7 @@ void main() {
     expect(engine.blastEffects.single.position, enemy.position);
     expect(
       engine.blastEffects.single.radius,
-      towerConfigs[TowerType.cannon]!.blastRadius,
+      towerCatalog[TowerType.cannon]!.blastRadius,
     );
 
     engine.update(1);
@@ -411,7 +442,7 @@ void main() {
       movementPattern: MovementPattern.straight,
       health: 100,
     );
-    final config = towerConfigs[TowerType.slowerer]!;
+    final config = towerCatalog[TowerType.slowerer]!;
     engine.enemies.add(enemy);
     engine.projectiles.add(Projectile(
       id: 'slow_ray',
@@ -419,11 +450,7 @@ void main() {
       source: const Offset(50, 100),
       position: enemy.position,
       targetPosition: enemy.position,
-      speed: 520,
-      damage: config.damage,
-      sourceTowerType: TowerType.slowerer,
-      slowMultiplier: config.slowMultiplier,
-      slowDuration: config.slowDuration,
+      attack: config.attack,
     ));
 
     engine.update(0.01);
@@ -434,7 +461,7 @@ void main() {
     enemy.update(1);
     expect(enemy.position.dx - slowedStart, closeTo(30, 0.001));
 
-    enemy.update(3);
+    enemy.updateStatusEffects(3);
     expect(enemy.isSlowed, false);
     expect(enemy.effectiveSpeed, 90);
   });
@@ -447,7 +474,7 @@ void main() {
       id: 'magic_curse_target',
       position: const Offset(160, 100),
     );
-    final config = towerConfigs[TowerType.magic]!;
+    final config = towerCatalog[TowerType.magic]!;
     engine.enemies.add(enemy);
     engine.projectiles.add(Projectile(
       id: 'magic_curse_projectile',
@@ -455,13 +482,7 @@ void main() {
       source: const Offset(120, 100),
       position: enemy.position,
       targetPosition: enemy.position,
-      speed: 200,
-      damage: config.damage,
-      blastRadius: config.blastRadius,
-      sourceTowerType: TowerType.magic,
-      damagePerTick: config.damagePerTick,
-      damageTickCount: config.damageTickCount,
-      damageTickInterval: config.damageTickInterval,
+      attack: config.attack,
     ));
 
     engine.update(0.01);
@@ -469,11 +490,12 @@ void main() {
     expect(enemy.health, 100 - config.damage);
     expect(enemy.isUnderMagicEffect, true);
 
-    for (var tick = 1; tick <= config.damageTickCount; tick++) {
-      engine.update(config.damageTickInterval);
+    final periodicDamage = config.periodicDamage!;
+    for (var tick = 1; tick <= periodicDamage.tickCount; tick++) {
+      engine.update(periodicDamage.tickInterval);
       expect(
         enemy.health,
-        100 - config.damage - (config.damagePerTick * tick),
+        100 - config.damage - (periodicDamage.damagePerTick * tick),
       );
     }
     expect(enemy.isUnderMagicEffect, false);
@@ -492,11 +514,12 @@ void main() {
       movementPattern: MovementPattern.straight,
       health: 6,
     );
-    enemy.applyMagicDamage(
+    enemy.applyStatus(const PeriodicDamageEffectDefinition(
+      id: 'purple_curse',
       damagePerTick: 10,
       tickCount: 1,
       tickInterval: 1,
-    );
+    ));
     engine.enemies.add(enemy);
 
     engine.update(1);
@@ -504,6 +527,26 @@ void main() {
     expect(engine.kills, 1);
     expect(engine.coins, 525);
     expect(engine.enemies, isEmpty);
+  });
+
+  test('Generic status effects refresh by stable effect id', () {
+    final enemy = _enemyAt(
+      id: 'generic_status_target',
+      position: const Offset(100, 100),
+    );
+    const slow = StatModifierEffectDefinition(
+      id: 'test_slow',
+      duration: 2,
+      speedMultiplier: 0.5,
+    );
+
+    enemy.applyStatus(slow);
+    enemy.applyStatus(slow);
+
+    expect(enemy.statusEffects, hasLength(1));
+    expect(enemy.hasStatus('test_slow'), true);
+    enemy.updateStatusEffects(2);
+    expect(enemy.hasStatus('test_slow'), false);
   });
 }
 
@@ -526,4 +569,19 @@ void _spawnAndClearCurrentWave(GameEngine engine) {
   }
   engine.enemies.clear();
   engine.update(0);
+}
+
+AttackDefinition _directAttack({
+  required double speed,
+  required double damage,
+}) {
+  return AttackDefinition(
+    id: 'test_attack',
+    delivery: AttackDelivery.projectile,
+    projectileSpeed: speed,
+    visualId: 'test_projectile',
+    effects: [
+      DirectDamageEffectDefinition(id: 'test_damage', damage: damage),
+    ],
+  );
 }

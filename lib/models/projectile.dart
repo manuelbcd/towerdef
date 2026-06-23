@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'game_config.dart';
+import 'combat.dart';
 
 class Projectile {
   final String id;
@@ -7,15 +7,7 @@ class Projectile {
   final Offset source;
   Offset position;
   Offset targetPosition;
-  final double speed;
-  final double damage;
-  final double blastRadius;
-  final TowerType? sourceTowerType;
-  final double slowMultiplier;
-  final double slowDuration;
-  final double damagePerTick;
-  final int damageTickCount;
-  final double damageTickInterval;
+  final AttackDefinition attack;
   bool hasHit = false;
   bool reachedTargetPosition = false;
 
@@ -25,29 +17,20 @@ class Projectile {
     required this.source,
     required this.position,
     required this.targetPosition,
-    required this.speed,
-    required this.damage,
-    this.blastRadius = 0,
-    this.sourceTowerType,
-    this.slowMultiplier = 1,
-    this.slowDuration = 0,
-    this.damagePerTick = 0,
-    this.damageTickCount = 0,
-    this.damageTickInterval = 1,
+    required this.attack,
   });
 
   double get radius => 4.0;
 
   Color get color {
-    switch (sourceTowerType) {
-      case TowerType.magic:
+    switch (attack.visualId) {
+      case 'magic_orb':
         return Colors.purpleAccent;
-      case TowerType.cannon:
+      case 'cannon_shell':
         return Colors.deepOrangeAccent;
-      case TowerType.slowerer:
+      case 'slowing_ray':
         return Colors.cyanAccent;
-      case TowerType.archer:
-      case null:
+      default:
         return Colors.amber;
     }
   }
@@ -57,7 +40,7 @@ class Projectile {
     final direction = (targetPosition - position);
     final distance = direction.distance;
 
-    if (distance <= speed * deltaTime || distance == 0) {
+    if (distance <= attack.projectileSpeed * deltaTime || distance == 0) {
       position = targetPosition;
       reachedTargetPosition = true;
       return;
@@ -65,8 +48,8 @@ class Projectile {
 
     final normalized = direction / distance;
     position = position.translate(
-      normalized.dx * speed * deltaTime,
-      normalized.dy * speed * deltaTime,
+      normalized.dx * attack.projectileSpeed * deltaTime,
+      normalized.dy * attack.projectileSpeed * deltaTime,
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../localization/app_localizations.dart';
 import '../models/game_data.dart';
+import '../models/game_config.dart';
 
 class MarketScreen extends StatelessWidget {
   final VoidCallback onBack;
@@ -69,7 +70,7 @@ class _Header extends StatelessWidget {
 }
 
 class _ShopCard extends StatelessWidget {
-  final TowerItem item;
+  final TowerDefinition item;
   final VoidCallback onBuy;
 
   const _ShopCard({Key? key, required this.item, required this.onBuy})
@@ -119,7 +120,7 @@ class _ShopCard extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
             ),
-            child: Text(context.t('buy')),
+            child: Text('${context.t('buy')} ${item.placementCost}'),
           ),
         ],
       ),

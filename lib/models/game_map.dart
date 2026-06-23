@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'game_config.dart';
 
 class MapLine {
   final Offset from;
@@ -48,27 +47,19 @@ class LandscapePalette {
   });
 }
 
-class GameMap {
+class MapRouteDefinition {
   final String id;
-  final String name;
   final List<Offset> pathWaypoints;
   final List<MapLine> startLines;
   final List<MapLine> endLines;
-  final List<Offset> towerSlots;
-  final List<WaveConfig> waves;
-  final LandscapePalette landscapePalette;
-  final List<SceneryItem> scenery;
+  final int spawnWeight;
 
-  const GameMap({
+  const MapRouteDefinition({
     required this.id,
-    required this.name,
     required this.pathWaypoints,
     required this.startLines,
     required this.endLines,
-    required this.towerSlots,
-    required this.waves,
-    required this.landscapePalette,
-    required this.scenery,
+    this.spawnWeight = 1,
   });
 
   List<Offset> scaledPath(Size size) {
@@ -77,13 +68,45 @@ class GameMap {
         .toList();
     return _sampleCatmullRom(points, samplesPerSegment: 18);
   }
+}
+
+class GameMap {
+  final String id;
+  final String name;
+  final List<MapRouteDefinition> routes;
+  final List<Offset> towerSlots;
+  final LandscapePalette landscapePalette;
+  final List<SceneryItem> scenery;
+
+  const GameMap({
+    required this.id,
+    required this.name,
+    required this.routes,
+    required this.towerSlots,
+    required this.landscapePalette,
+    required this.scenery,
+  });
+
+  List<Offset> scaledPath(Size size) {
+    return routes.first.scaledPath(size);
+  }
+
+  Map<String, List<Offset>> scaledPaths(Size size) {
+    return {for (final route in routes) route.id: route.scaledPath(size)};
+  }
 
   List<MapLine> scaledStartLines(Size size) {
-    return startLines.map((line) => line.scale(size)).toList();
+    return routes
+        .expand((route) => route.startLines)
+        .map((line) => line.scale(size))
+        .toList();
   }
 
   List<MapLine> scaledEndLines(Size size) {
-    return endLines.map((line) => line.scale(size)).toList();
+    return routes
+        .expand((route) => route.endLines)
+        .map((line) => line.scale(size))
+        .toList();
   }
 
   List<Offset> scaledTowerSlots(Size size) {
@@ -91,104 +114,24 @@ class GameMap {
         .map((point) => Offset(point.dx * size.width, point.dy * size.height))
         .toList();
   }
-}
 
-class WaveConfig {
-  final double spawnInterval;
-  final List<WaveEnemyGroup> enemyGroups;
+  MapRouteDefinition routeForSpawn(int spawnIndex, {String? routeId}) {
+    if (routeId != null) {
+      return routes.firstWhere(
+        (route) => route.id == routeId,
+        orElse: () => throw StateError('Unknown route $routeId on map $id'),
+      );
+    }
 
-  const WaveConfig({
-    required this.spawnInterval,
-    required this.enemyGroups,
-  });
-
-  int get totalEnemies {
-    return enemyGroups.fold(0, (total, group) => total + group.count);
+    final weightedRoutes = <MapRouteDefinition>[];
+    for (final route in routes) {
+      for (var i = 0; i < route.spawnWeight; i++) {
+        weightedRoutes.add(route);
+      }
+    }
+    return weightedRoutes[spawnIndex % weightedRoutes.length];
   }
 }
-
-class WaveEnemyGroup {
-  final EnemyType type;
-  final int count;
-  final double health;
-  final double speed;
-  final MovementPattern movementPattern;
-
-  const WaveEnemyGroup({
-    required this.type,
-    required this.count,
-    required this.health,
-    required this.speed,
-    required this.movementPattern,
-  });
-}
-
-const standardMapWaves = <WaveConfig>[
-  WaveConfig(
-    spawnInterval: 1.0,
-    enemyGroups: [
-      WaveEnemyGroup(
-        type: EnemyType.goblin,
-        count: 3,
-        health: 22,
-        speed: 58,
-        movementPattern: MovementPattern.straight,
-      ),
-      WaveEnemyGroup(
-        type: EnemyType.runner,
-        count: 2,
-        health: 14,
-        speed: 84,
-        movementPattern: MovementPattern.stepStopStep,
-      ),
-    ],
-  ),
-  WaveConfig(
-    spawnInterval: 0.85,
-    enemyGroups: [
-      WaveEnemyGroup(
-        type: EnemyType.goblin,
-        count: 4,
-        health: 28,
-        speed: 62,
-        movementPattern: MovementPattern.straight,
-      ),
-      WaveEnemyGroup(
-        type: EnemyType.runner,
-        count: 3,
-        health: 18,
-        speed: 92,
-        movementPattern: MovementPattern.stepStopStep,
-      ),
-    ],
-  ),
-  WaveConfig(
-    spawnInterval: 0.75,
-    enemyGroups: [
-      WaveEnemyGroup(
-        type: EnemyType.goblin,
-        count: 4,
-        health: 34,
-        speed: 64,
-        movementPattern: MovementPattern.straight,
-      ),
-      WaveEnemyGroup(
-        type: EnemyType.runner,
-        count: 3,
-        health: 22,
-        speed: 96,
-        movementPattern: MovementPattern.stepStopStep,
-      ),
-      WaveEnemyGroup(
-        type: EnemyType.brute,
-        count: 2,
-        health: 58,
-        speed: 40,
-        movementPattern: MovementPattern.straight,
-      ),
-    ],
-  ),
-];
 
 List<Offset> _sampleCatmullRom(
   List<Offset> points, {
@@ -233,16 +176,34 @@ const gameMaps = <GameMap>[
   GameMap(
     id: 'green_pass',
     name: 'Green Pass',
-    pathWaypoints: [
-      Offset(-0.08, 0.18),
-      Offset(0.18, 0.20),
-      Offset(0.38, 0.42),
-      Offset(0.64, 0.34),
-      Offset(0.82, 0.62),
-      Offset(1.08, 0.62),
+    routes: [
+      MapRouteDefinition(
+        id: 'upper',
+        pathWaypoints: [
+          Offset(-0.08, 0.18),
+          Offset(0.18, 0.20),
+          Offset(0.38, 0.42),
+          Offset(0.64, 0.34),
+          Offset(0.82, 0.62),
+          Offset(1.08, 0.62),
+        ],
+        startLines: [MapLine(from: Offset(0.02, 0.10), to: Offset(0.02, 0.28))],
+        endLines: [MapLine(from: Offset(0.98, 0.54), to: Offset(0.98, 0.72))],
+      ),
+      MapRouteDefinition(
+        id: 'lower',
+        pathWaypoints: [
+          Offset(-0.08, 0.78),
+          Offset(0.18, 0.76),
+          Offset(0.38, 0.58),
+          Offset(0.62, 0.72),
+          Offset(0.82, 0.46),
+          Offset(1.08, 0.32),
+        ],
+        startLines: [MapLine(from: Offset(0.02, 0.68), to: Offset(0.02, 0.84))],
+        endLines: [MapLine(from: Offset(0.98, 0.24), to: Offset(0.98, 0.40))],
+      ),
     ],
-    startLines: [MapLine(from: Offset(0.02, 0.10), to: Offset(0.02, 0.28))],
-    endLines: [MapLine(from: Offset(0.98, 0.54), to: Offset(0.98, 0.72))],
     towerSlots: [
       Offset(0.16, 0.38),
       Offset(0.24, 0.36),
@@ -272,22 +233,26 @@ const gameMaps = <GameMap>[
           scale: 1.35,
           rotation: -0.12),
     ],
-    waves: standardMapWaves,
   ),
   GameMap(
     id: 'ember_turns',
     name: 'Ember Turns',
-    pathWaypoints: [
-      Offset(0.22, -0.08),
-      Offset(0.22, 0.22),
-      Offset(0.52, 0.24),
-      Offset(0.58, 0.55),
-      Offset(0.32, 0.70),
-      Offset(0.66, 0.88),
-      Offset(0.66, 1.08),
+    routes: [
+      MapRouteDefinition(
+        id: 'main',
+        pathWaypoints: [
+          Offset(0.22, -0.08),
+          Offset(0.22, 0.22),
+          Offset(0.52, 0.24),
+          Offset(0.58, 0.55),
+          Offset(0.32, 0.70),
+          Offset(0.66, 0.88),
+          Offset(0.66, 1.08),
+        ],
+        startLines: [MapLine(from: Offset(0.14, 0.02), to: Offset(0.30, 0.02))],
+        endLines: [MapLine(from: Offset(0.58, 0.98), to: Offset(0.74, 0.98))],
+      ),
     ],
-    startLines: [MapLine(from: Offset(0.14, 0.02), to: Offset(0.30, 0.02))],
-    endLines: [MapLine(from: Offset(0.58, 0.98), to: Offset(0.74, 0.98))],
     towerSlots: [
       Offset(0.18, 0.38),
       Offset(0.38, 0.38),
@@ -322,21 +287,25 @@ const gameMaps = <GameMap>[
           scale: 1.25,
           rotation: -0.2),
     ],
-    waves: standardMapWaves,
   ),
   GameMap(
     id: 'river_hook',
     name: 'River Hook',
-    pathWaypoints: [
-      Offset(1.08, 0.16),
-      Offset(0.78, 0.20),
-      Offset(0.74, 0.46),
-      Offset(0.44, 0.50),
-      Offset(0.30, 0.74),
-      Offset(-0.08, 0.76),
+    routes: [
+      MapRouteDefinition(
+        id: 'main',
+        pathWaypoints: [
+          Offset(1.08, 0.16),
+          Offset(0.78, 0.20),
+          Offset(0.74, 0.46),
+          Offset(0.44, 0.50),
+          Offset(0.30, 0.74),
+          Offset(-0.08, 0.76),
+        ],
+        startLines: [MapLine(from: Offset(0.98, 0.08), to: Offset(0.98, 0.26))],
+        endLines: [MapLine(from: Offset(0.02, 0.68), to: Offset(0.02, 0.84))],
+      ),
     ],
-    startLines: [MapLine(from: Offset(0.98, 0.08), to: Offset(0.98, 0.26))],
-    endLines: [MapLine(from: Offset(0.02, 0.68), to: Offset(0.02, 0.84))],
     towerSlots: [
       Offset(0.80, 0.36),
       Offset(0.64, 0.34),
@@ -369,23 +338,27 @@ const gameMaps = <GameMap>[
       SceneryItem(
           type: SceneryType.rock, position: Offset(0.12, 0.90), scale: 0.9),
     ],
-    waves: standardMapWaves,
   ),
   GameMap(
     id: 'stone_s',
     name: 'Stone S',
-    pathWaypoints: [
-      Offset(-0.08, 0.50),
-      Offset(0.18, 0.50),
-      Offset(0.30, 0.20),
-      Offset(0.56, 0.20),
-      Offset(0.68, 0.50),
-      Offset(0.48, 0.78),
-      Offset(0.84, 0.78),
-      Offset(1.08, 0.52),
+    routes: [
+      MapRouteDefinition(
+        id: 'main',
+        pathWaypoints: [
+          Offset(-0.08, 0.50),
+          Offset(0.18, 0.50),
+          Offset(0.30, 0.20),
+          Offset(0.56, 0.20),
+          Offset(0.68, 0.50),
+          Offset(0.48, 0.78),
+          Offset(0.84, 0.78),
+          Offset(1.08, 0.52),
+        ],
+        startLines: [MapLine(from: Offset(0.02, 0.42), to: Offset(0.02, 0.58))],
+        endLines: [MapLine(from: Offset(0.98, 0.44), to: Offset(0.98, 0.60))],
+      ),
     ],
-    startLines: [MapLine(from: Offset(0.02, 0.42), to: Offset(0.02, 0.58))],
-    endLines: [MapLine(from: Offset(0.98, 0.44), to: Offset(0.98, 0.60))],
     towerSlots: [
       Offset(0.18, 0.68),
       Offset(0.38, 0.38),
@@ -414,23 +387,27 @@ const gameMaps = <GameMap>[
       SceneryItem(
           type: SceneryType.sand, position: Offset(0.38, 0.56), scale: 1.2),
     ],
-    waves: standardMapWaves,
   ),
   GameMap(
     id: 'frost_loop',
     name: 'Frost Loop',
-    pathWaypoints: [
-      Offset(0.50, 1.08),
-      Offset(0.50, 0.82),
-      Offset(0.22, 0.72),
-      Offset(0.24, 0.38),
-      Offset(0.54, 0.32),
-      Offset(0.78, 0.46),
-      Offset(0.76, 0.16),
-      Offset(0.50, -0.08),
+    routes: [
+      MapRouteDefinition(
+        id: 'main',
+        pathWaypoints: [
+          Offset(0.50, 1.08),
+          Offset(0.50, 0.82),
+          Offset(0.22, 0.72),
+          Offset(0.24, 0.38),
+          Offset(0.54, 0.32),
+          Offset(0.78, 0.46),
+          Offset(0.76, 0.16),
+          Offset(0.50, -0.08),
+        ],
+        startLines: [MapLine(from: Offset(0.42, 0.98), to: Offset(0.58, 0.98))],
+        endLines: [MapLine(from: Offset(0.42, 0.02), to: Offset(0.58, 0.02))],
+      ),
     ],
-    startLines: [MapLine(from: Offset(0.42, 0.98), to: Offset(0.58, 0.98))],
-    endLines: [MapLine(from: Offset(0.42, 0.02), to: Offset(0.58, 0.02))],
     towerSlots: [
       Offset(0.34, 0.84),
       Offset(0.38, 0.56),
@@ -464,6 +441,5 @@ const gameMaps = <GameMap>[
       SceneryItem(
           type: SceneryType.rock, position: Offset(0.72, 0.92), scale: 1.0),
     ],
-    waves: standardMapWaves,
   ),
 ];
